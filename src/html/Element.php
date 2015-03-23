@@ -110,12 +110,6 @@ abstract class :xhp:html-element extends :x:primitive {
     bool vertical,
     bool flex,
     bool unresolved,
-    bool two,
-    bool three,
-    bool auto-vertical,
-    bool center,
-    bool start,
-    bool end,
     bool start-justified,
     bool center-justified,
     bool end-justified,
@@ -124,11 +118,11 @@ abstract class :xhp:html-element extends :x:primitive {
     bool reverse,
     bool fullbleed,
     bool block,
-    bool hidden,
     bool relative,
     bool fit,
-
-    Stringish touch-action;
+    bool two,
+    bool three,
+    bool auto-vertical;
 
   protected string $tagName = '';
 
