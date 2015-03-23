@@ -34,6 +34,7 @@ class ReflectionXHPAttribute {
   private static ImmSet<string> $specialAttributes = ImmSet {
     'data',
     'aria',
+    'on'
   };
 
   public function __construct(
