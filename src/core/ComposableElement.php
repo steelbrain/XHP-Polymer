@@ -384,7 +384,7 @@ abstract class :x:composable-element extends :xhp {
    * @param mixed $default  The value to return if not set (optional)
    * @return mixed          The context value or $default
    */
-  final public function getContext(string $key, mixed $default): mixed {
+  final public function getContext(string $key, mixed $default = null): mixed {
     if ($this->context->containsKey($key)) {
       return $this->context->get($key);
     }
@@ -449,13 +449,9 @@ abstract class :x:composable-element extends :xhp {
     }
 
     $childWaitHandles = Map{};
-    $flushWaitHandles = Vector{};
     do {
-      if ($childWaitHandles || $flushWaitHandles) {
-        list($awaitedChildren, $_) = await GenArrayWaitHandle::create(array(
-          GenMapWaitHandle::create($childWaitHandles),
-          GenVectorWaitHandle::create($flushWaitHandles),
-        ));
+      if ($childWaitHandles) {
+        $awaitedChildren = await GenMapWaitHandle::create($childWaitHandles);
         if ($awaitedChildren) {
           foreach ($awaitedChildren as $i => $awaitedChild) {
             $this->children->set($i, $awaitedChild);
@@ -464,7 +460,6 @@ abstract class :x:composable-element extends :xhp {
           $this->replaceChildren(<x:frag>{$this->children}</x:frag>);
           $childWaitHandles = Map{};
         }
-        $flushWaitHandles = Vector{};
       }
 
       $ln = count($this->children);
@@ -492,10 +487,6 @@ abstract class :x:composable-element extends :xhp {
               $this->children->removeKey($i);
               $i--;
             } else {
-              if ($child instanceof :x:primitive) {
-                $flushWaitHandles[] =
-                  $child->__flushElementChildren()->getWaitHandle();
-              }
               assert($child instanceof XHPChild);
               $this->children[$i] = $child;
             }
@@ -503,6 +494,13 @@ abstract class :x:composable-element extends :xhp {
         }
       }
     } while ($childWaitHandles);
+
+    $flushWaitHandles = Vector{};
+    foreach ($this->children as $child) {
+      if ($child instanceof :x:primitive) {
+        $flushWaitHandles[] = $child->__flushElementChildren()->getWaitHandle();
+      }
+    }
 
     if ($flushWaitHandles) {
       await GenVectorWaitHandle::create($flushWaitHandles);
@@ -520,8 +518,8 @@ abstract class :x:composable-element extends :xhp {
    */
   protected static function &__xhpAttributeDeclaration(
   ): array<string, array<int, mixed>> {
-    static $_ = array();
-    return $_;
+    static $decl = array();
+    return $decl;
   }
 
   /**
@@ -529,8 +527,8 @@ abstract class :x:composable-element extends :xhp {
    * categories an element belongs to. Each category is a key with value 1.
    */
   protected function &__xhpCategoryDeclaration(): array<string, int> {
-    static $_ = array();
-    return $_;
+    static $decl = array();
+    return $decl;
   }
 
   /**
@@ -541,8 +539,8 @@ abstract class :x:composable-element extends :xhp {
    * biggest mess you've ever seen.
    */
   protected function &__xhpChildrenDeclaration(): mixed {
-    static $_ = 1;
-    return $_;
+    static $decl = 1;
+    return $decl;
   }
 
   /**
@@ -655,7 +653,7 @@ abstract class :x:composable-element extends :xhp {
       case XHPChildrenExpressionType::SINGLE:
         // Exactly once -- :fb-thing
         return $this->validateChildrenRule($expr, $index);
-      case XHPChildrenExpressionType::ANY_NUMBER: 
+      case XHPChildrenExpressionType::ANY_NUMBER:
         // Zero or more times -- :fb-thing*
         do {
           list($ret, $index) = $this->validateChildrenRule(
